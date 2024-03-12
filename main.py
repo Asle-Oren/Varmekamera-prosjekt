@@ -14,10 +14,14 @@ import display
 import fir
 import math
 import tfp410
-
+from pyb import Pin
 
 # Color Tracking Thresholds (Grayscale Min, Grayscale Max)
 threshold_list = [(200, 255)]
+
+pin7 = Pin('P7', Pin.IN, Pin.PULL_UP)
+pin8 = Pin('P8', Pin.IN, Pin.PULL_UP)
+
 
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
@@ -74,26 +78,47 @@ while True:
                                                                       roi=b.rect()).mean())))
     x_scale = img.width() / fir_img.width()
     y_scale = img.height() / fir_img.height()
-    img.draw_image(fir_img, 0, 0, x_scale=x_scale, y_scale=y_scale,
-                   color_palette=image.PALETTE_RAINBOW,
-                   alpha_palette=alpha_pal,
-                   hint=image.BICUBIC)
 
-    # Draw stuff on the colored image
-    for b in blobs:
-        img.draw_rectangle(int(b.rect()[0] * x_scale), int(b.rect()[1] * y_scale),
-                           int(b.rect()[2] * x_scale), int(b.rect()[3] * y_scale))
-        img.draw_cross(int(b.cx() * x_scale), int(b.cy() * y_scale))
-    for blob_stat in blob_stats:
-        img.draw_string(int((blob_stat[0][0] * x_scale) + 4), int((blob_stat[0][1] * y_scale) + 1),
-                        '%.2f C' % blob_stat[1], mono_space=False, scale=2, string_rotation=270)
+    if pin7.value() == 0: # switch down, show ir only
+        img.draw_image(fir_img, 0, 0, x_scale=x_scale, y_scale=y_scale,
+                    color_palette=image.PALETTE_RAINBOW,
+                    alpha_palette=alpha_pal,
+                    hint=image.BICUBIC)
 
-    # Draw ambient, min and max temperatures.
-    img.draw_string(0, 460, 'Lepton Temp: %0.2f C' % ta,
-                    color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
-    img.draw_string(20, 460, 'Min Temp: %0.2f C' % to_min,
-                    color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
-    img.draw_string(40, 460, 'Max Temp: %0.2f C' % to_max,
-                    color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
+        # Draw stuff on the colored image
+        for b in blobs:
+            img.draw_rectangle(int(b.rect()[0] * x_scale), int(b.rect()[1] * y_scale),
+                            int(b.rect()[2] * x_scale), int(b.rect()[3] * y_scale))
+            img.draw_cross(int(b.cx() * x_scale), int(b.cy() * y_scale))
+
+        img.draw_string(0, 460, 'Lepton Temp: %0.2f C' % ta,
+                        color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
+        img.draw_string(20, 460, 'Min Temp: %0.2f C' % to_min,
+                        color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
+        img.draw_string(40, 460, 'Max Temp: %0.2f C' % to_max,
+                        color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
+
+
+    elif pin8.value() == 0: #switch up, show camera only
+        pass
+
+    else: #switch neutral, show both camera and ir
+
+        img.draw_image(fir_img, 0, 0, x_scale=x_scale, y_scale=y_scale,
+                    color_palette=image.PALETTE_RAINBOW,
+                    alpha_palette=alpha_pal,
+                    hint=image.BICUBIC)
+
+        for blob_stat in blob_stats:
+            img.draw_string(int((blob_stat[0][0] * x_scale) + 4), int((blob_stat[0][1] * y_scale) + 1),
+                            '%.2f C' % blob_stat[1], mono_space=False, scale=2, string_rotation=270)
+
+        # Draw ambient, min and max temperatures.
+        img.draw_string(0, 460, 'Lepton Temp: %0.2f C' % ta,
+                        color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
+        img.draw_string(20, 460, 'Min Temp: %0.2f C' % to_min,
+                        color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
+        img.draw_string(40, 460, 'Max Temp: %0.2f C' % to_max,
+                        color=(255, 255, 255), mono_space=False, scale=2, string_rotation=270)
 
     lcd.write(img, hint=(image.BILINEAR | image.CENTER | image.SCALE_ASPECT_KEEP))
